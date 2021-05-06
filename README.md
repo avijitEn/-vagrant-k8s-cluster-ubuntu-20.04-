@@ -52,9 +52,8 @@ This documentation guides you in setting up a cluster with one master node and o
     $ vagrant status
     Current machine states:
 
-    master.k8s                running (virtualbox)
-    node1.k8s                 running (virtualbox)
-    node2.k8s                 running (virtualbox)
+   k8s-master                running (virtualbox)
+   node-1                    running (virtualbox)
 
 <br/>
 
