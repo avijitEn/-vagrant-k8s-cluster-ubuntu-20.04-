@@ -14,6 +14,18 @@
 $ curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl && chmod +x kubectl && sudo mv kubectl /usr/local/bin/
 ```
 
+# Install Kubernetes Cluster using kubeadm
+Follow this documentation to set up a Kubernetes cluster on __Ubuntu 20.04 LTS__.
+
+This documentation guides you in setting up a cluster with one master node and one worker node.
+
+## Assumptions
+|Role|FQDN|IP|OS|RAM|CPU|
+|----|----|----|----|----|----|
+|Master|k8s-master|192.168.50.10|Ubuntu 20.04|2G|2|
+|Worker|node-1|192.168.50.11|Ubuntu 20.04|1G|1|
+
+
 <br/>
 
     $ sudo vi /etc/hosts
