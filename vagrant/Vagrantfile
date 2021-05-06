@@ -1,0 +1,114 @@
+$script = <<-SCRIPT
+
+# Install kubernetes
+apt-get update && apt-get install -y apt-transport-https
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+deb http://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+apt-get update
+apt-get install -y kubelet=1.20\* kubeadm=1.20\* kubectl=1.20\*
+
+sudo apt install net-tools
+apt install -qq -y sshpass >/dev/null 2>&1
+# kubelet requires swap off
+swapoff -a
+sudo sed -i -e 's/#DNS=/DNS=8.8.8.8/' /etc/systemd/resolved.conf
+sudo service systemd-resolved restart
+
+# keep swap off after reboot
+sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+#docker instalaltion
+echo "[TASK 1] Docker Install"
+ssh-keygen -q -t rsa -N '' <<< ""$'\n'"y" 2>&1 >/dev/null
+#sudo -i 
+#sudo cd /tmp
+sudo curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+echo "[TASK 2] Stop and Disable firewall"
+systemctl disable --now ufw >/dev/null 2>&1
+
+echo "[TASK 3] Enable and Load Kernel modules"
+cat <<EOF | sudo tee /etc/modules-load.d/k8s.conf
+br_netfilter
+EOF
+modprobe overlay
+modprobe br_netfilter
+echo "[TASK 4] Add Kernel settings"
+cat >>/etc/sysctl.d/kubernetes.conf<<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables  = 1
+net.ipv4.ip_forward                 = 1
+EOF
+sysctl --system >/dev/null 2>&1
+
+#echo "[TASK 5] Install containerd runtime"
+#apt update -qq >/dev/null 2>&1
+#apt install -qq -y containerd apt-transport-https >/dev/null 2>&1
+#mkdir /etc/containerd
+#containerd config default > /etc/containerd/config.toml
+#systemctl restart containerd
+#systemctl enable containerd >/dev/null 2>&1
+echo "[TASK 8] Enable ssh password authentication"
+sed -i 's/^PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+systemctl reload sshd
+
+echo "[TASK 9] Set root password"
+echo -e "kubeadmin\nkubeadmin" | passwd root >/dev/null 2>&1
+echo "export TERM=xterm" >> /etc/bash.bashrc
+IFNAME="enp0s8"
+ADDRESS="$(ip -4 addr show $IFNAME | grep "inet" | head -1 |awk '{print $2}' | cut -d/ -f1)"
+sed -e "s/^.*${HOSTNAME}.*/${ADDRESS} ${HOSTNAME} ${HOSTNAME}.local/" -i /etc/hosts
+# remove ubuntu-bionic entry
+sed -e '/^.*ubuntu-focal.*/d' -i /etc/hosts
+cat >> /etc/hosts <<EOF
+192.168.50.10   k8s-master
+192.168.50.11  node-1
+EOF
+SCRIPT
+
+
+
+
+
+#IMAGE_NAME = "ubuntu/bionic64"
+IMAGE_NAME = "ubuntu/focal64"
+N = 1
+Vagrant.configure("2") do |config|
+    #config.ssh.insert_key = false
+
+    #config.vm.provider "virtualbox" do |v|
+    #   v.memory = 1024
+    #  v.cpus = 1
+    
+    config.vm.define "k8s-master" do |master|
+        master.vm.box = IMAGE_NAME
+        master.vm.network "private_network", ip: "192.168.50.10"
+        master.vm.hostname = "k8s-master"
+
+        master.vm.provider "virtualbox" do |vb|
+            vb.memory = "2048"
+            vb.cpus = 2
+        end
+        master.vm.provision "shell", inline: $script
+        master.vm.provision "shell", path: "bootstrap_master.sh"
+            
+        end
+      
+    
+    (1..N).each do |i|
+        config.vm.define "node-#{i}" do |node|
+            node.vm.box = IMAGE_NAME
+            node.vm.network "private_network", ip: "192.168.50.#{i + 10}"
+            node.vm.hostname = "node-#{i}"
+            node.vm.provision "shell", inline: $script
+            node.vm.provision "shell", path: "bootstrap_node.sh"
+            node.vm.provider "virtualbox" do |vb|
+                vb.memory = 512
+                vb.cpus = 1   
+            end
+        end
+      end
+      
+    end
