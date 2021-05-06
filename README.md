@@ -72,8 +72,8 @@ This documentation guides you in setting up a cluster with one master node and o
 
 ```
 $ kubectl version --short
-Client Version: v1.20.2
-Server Version: v1.20.2
+Client Version: v1.20.6
+Server Version: v1.20.6
 ```
 
 <br/>
