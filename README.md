@@ -28,11 +28,7 @@ $ curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s h
 192.168.0.12 node2.k8s node2
 ```
 
-<br/>
 
-    $ vagrant plugin install vagrant-hostmanager
-
-<br/>
 
     $ mkdir ~/vagrant-kubernetes-ubuntu-20 && cd ~/vagrant-kubernetes-ubuntu-20
 
