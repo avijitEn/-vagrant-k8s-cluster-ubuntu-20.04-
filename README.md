@@ -1,6 +1,6 @@
 # vagrant-k8s-cluster-ubuntu-20.04
 
-size 22  Change Owner B2C PoP or B2B PoP
+
 
 
 
